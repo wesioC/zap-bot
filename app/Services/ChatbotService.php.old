@@ -1,0 +1,156 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Customer;
+use App\Models\Conversation;
+use Prism\Prism\Prism;
+use Prism\Prism\Enums\Provider;
+use Prism\Prism\ValueObjects\Messages\SystemMessage;
+use Prism\Prism\ValueObjects\Messages\UserMessage;
+use Prism\Prism\ValueObjects\Messages\AssistantMessage;
+use Carbon\Carbon;
+
+class ChatbotService
+{
+    public function processMessage(string $phone, string $message): array
+    {
+        $customer = Customer::firstOrCreate(
+            ['phone' => $phone],
+            ['name' => null, 'has_design' => false]
+        );
+
+        $conversation = $customer->getOrCreateActiveConversation();
+
+        $conversation->addMessage('user', $message);
+
+        $aiResponse = $this->generateAIResponse($customer, $conversation, $message);
+
+        $conversation->addMessage('assistant', $aiResponse['response']);
+
+        if (isset($aiResponse['status'])) {
+            $conversation->update(['status' => $aiResponse['status']]);
+        }
+
+        return [
+            'customer_id' => $customer->id,
+            'conversation_id' => $conversation->id,
+            'response' => $aiResponse['response'],
+            'status' => $conversation->status,
+        ];
+    }
+
+
+    private function generateAIResponse(Customer $customer, Conversation $conversation, string $userMessage): array
+    {
+        $systemPrompt = $this->buildSystemPrompt($customer);
+        $history = $conversation->getMessagesHistory();
+
+        // Converter histórico de arrays para objetos Message
+        $messages = [new SystemMessage($systemPrompt)];
+
+        foreach ($history as $msg) {
+            if ($msg['role'] === 'user') {
+                $messages[] = new UserMessage($msg['content']);
+            } elseif ($msg['role'] === 'assistant') {
+                $messages[] = new AssistantMessage($msg['content']);
+            }
+        }
+
+        try {
+            $response = Prism::text()
+                ->using(Provider::OpenAI, config('services.openai.model', 'gpt-4o-mini'))
+                ->withMessages($messages)
+                ->generate();
+
+            $aiResponse = $response->text;
+
+            $status = $this->analyzeResponseForStatus($aiResponse, $customer);
+
+            return [
+                'response' => $aiResponse,
+                'status' => $status,
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Erro ao gerar resposta da IA', [
+                'error' => $e->getMessage(),
+                'customer_id' => $customer->id,
+            ]);
+
+            return [
+                'response' => 'Desculpe, estou com dificuldades técnicas no momento. Por favor, tente novamente em alguns instantes.',
+                'status' => 'active',
+            ];
+        }
+    }
+
+
+    private function buildSystemPrompt(Customer $customer): string
+    {
+        $greeting = $this->getGreeting();
+        $customerName = $customer->name ?? 'Não informado';
+        $hasDesign = $customer->has_design ? 'Sim' : 'Não';
+
+        return <<<PROMPT
+Você é um assistente virtual de uma loja de uniformes profissionais. Seu objetivo é atender clientes de forma educada, profissional e eficiente.
+
+INSTRUÇÕES IMPORTANTES:
+1. Sempre comece a conversa com uma saudação apropriada ($greeting) seguida de uma apresentação breve.
+2. Pergunte educadamente se o cliente já possui um design/arte para o uniforme.
+3. Se o cliente TIVER design:
+   - Informe que você irá encaminhar a solicitação para o financeiro preparar um orçamento
+   - Peça para aguardar o retorno
+   - Pergunte se pode ajudar com algo mais
+4. Se o cliente NÃO TIVER design:
+   - Explique que vocês oferecem serviço de criação de design
+   - Informe sobre o processo e valores (se aplicável)
+   - Ofereça ajuda para iniciar o projeto
+5. Seja sempre cordial, use linguagem brasileira natural e profissional
+6. Se o cliente fizer perguntas sobre produtos, prazos ou valores, responda de forma geral e ofereça contato com especialista
+
+CONTEXTO DO CLIENTE:
+- Telefone: {$customer->phone}
+- Nome: {$customerName}
+- Já possui design: {$hasDesign}
+
+IMPORTANTE: Seja natural e fluido na conversa. Não seja robotizado. Adapte suas respostas ao contexto da conversa.
+PROMPT;
+    }
+
+    private function getGreeting(): string
+    {
+        $hour = Carbon::now()->hour;
+
+        if ($hour >= 5 && $hour < 12) {
+            return 'Bom dia';
+        } elseif ($hour >= 12 && $hour < 18) {
+            return 'Boa tarde';
+        } else {
+            return 'Boa noite';
+        }
+    }
+
+    private function analyzeResponseForStatus(string $response, Customer $customer): string
+    {
+        $responseLower = strtolower($response);
+
+        if (str_contains($responseLower, 'financeiro') ||
+            str_contains($responseLower, 'orçamento') ||
+            str_contains($responseLower, 'encaminhar')) {
+            return 'waiting_budget';
+        }
+
+        // Se mencionar criação de design
+        if (str_contains($responseLower, 'criação') ||
+            str_contains($responseLower, 'criar o design')) {
+            return 'waiting_design';
+        }
+
+        return 'active';
+    }
+
+    public function updateCustomerHasDesign(int $customerId, bool $hasDesign): void
+    {
+        Customer::find($customerId)?->update(['has_design' => $hasDesign]);
+    }
+}

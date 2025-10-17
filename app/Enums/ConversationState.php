@@ -24,6 +24,18 @@ enum ConversationState: string
 
     case ANSWERING_QUESTIONS = 'answering_questions';
 
+    case ASKING_CATEGORY = 'asking_category';
+
+    case ASKING_QUANTITY = 'asking_quantity';
+
+    case ASKING_STATE = 'asking_state';
+
+    case SHOWING_CATEGORY_CATALOG = 'showing_category_catalog';
+
+    case SENDING_TO_FINANCIAL_BR = 'sending_to_financial_br';
+
+    case SENDING_TO_FINANCIAL_PE = 'sending_to_financial_pe';
+
     case COMPLETED = 'completed';
 
     case ARCHIVED = 'archived';
@@ -39,6 +51,12 @@ enum ConversationState: string
             self::WAITING_DESIGN_FILE => 'Aguardando arquivo',
             self::WAITING_BUDGET => 'Aguardando orçamento',
             self::OFFERING_DESIGN_SERVICE => 'Oferecendo serviço de design',
+            self::ASKING_CATEGORY => 'Perguntando sobre categoria',
+            self::ASKING_QUANTITY => 'Perguntando sobre quantidade',
+            self::SENDING_TO_FINANCIAL_BR => 'Financeiro vai continuar daqui o atendimento',
+            self::SENDING_TO_FINANCIAL_PE => 'Financeiro de Pernambuco vai chamar o cliente',
+            self::ASKING_STATE => 'Perguntando sobre estado',
+            self::SHOWING_CATEGORY_CATALOG => 'Mostrando catálogo de categorias',
             self::WAITING_DESIGN_DECISION => 'Aguardando decisão',
             self::ANSWERING_QUESTIONS => 'Respondendo perguntas',
             self::COMPLETED => 'Concluído',

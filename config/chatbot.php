@@ -49,15 +49,28 @@ return [
         'delivery_time_min' => env('BUSINESS_DELIVERY_MIN', 15),
         'delivery_time_max' => env('BUSINESS_DELIVERY_MAX', 30),
         'delivery_time_unit' => env('BUSINESS_DELIVERY_UNIT', 'dias'),
+        'qtd_min' => env('BUSINESS_QTD_MIN', 10),
 
         'products' => [
-            'camisetas' => 'Camisetas (básicas, polos, dry-fit)',
-            'calcas' => 'Calças (sociais, jeans, cargo)',
-            'jalecos' => 'Jalecos profissionais',
-            'aventais' => 'Aventais personalizados',
-            'bones' => 'Bonés e chapéus',
-            'outros' => 'Outros uniformes personalizados',
+            'camisetas' => 'Camisetas (polo, gola V, regata, gola redonda)',
+            'camisas' => 'Camisas (polo, gola V, regata, gola redonda)',
+            'uniformes' => 'Uniformes (escolares, esportivos, profissionais)'
         ],
+        'categories' => [
+            'futebol' => 'Uniformes de Futebol',
+            'vaquejada' => 'Camisas de Vaquejada',
+            'empresarial' => 'Uniformes Empresariais',
+            'corrida' => 'Camisas de Corrida',
+        ],
+        'category_links' => [
+            'vaquejada' => 'https://seuperfiloficial.com.br/product-category/vaquejada/',
+            'corrida' => 'https://seuperfiloficial.com.br/product-category/corrida/',
+            'esporte' => 'https://seuperfiloficial.com.br/product-category/uniforme/',
+            'futebol' => 'https://seuperfiloficial.com.br/product-category/uniforme/',
+            'empresarial' => 'https://seuperfiloficial.com.br/product-category/empresarial/',
+            'corporativo' => 'https://seuperfiloficial.com.br/product-category/empresarial/',
+        ],
+        'loja_url' => env('BUSINESS_STORE_URL', 'https://seuperfiloficial.com.br/loja/'),
     ],
 
     /*

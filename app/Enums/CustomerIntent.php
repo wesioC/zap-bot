@@ -22,6 +22,8 @@ enum CustomerIntent: string
 
     case PROVIDING_DETAILS = 'providing_details';
 
+    case PROVIDING_CATEGORY = 'providing_category';
+
     case SENDING_FILE = 'sending_file';
 
     case WANTS_HUMAN = 'wants_human';
@@ -36,6 +38,15 @@ enum CustomerIntent: string
 
     case UNCLEAR = 'unclear';
 
+    case IS_PE = 'is_pe';
+
+    case IS_BR = 'is_br';
+
+    case PROVIDING_MODEL_LINK = 'providing_model_link'; 
+
+    case PROVIDING_QUANTITY = 'providing_quantity';
+
+
     public function description(): string
     {
         return match($this) {
@@ -49,7 +60,12 @@ enum CustomerIntent: string
             self::ASKING_PRODUCTS => 'Perguntando produtos',
             self::PROVIDING_DETAILS => 'Fornecendo detalhes',
             self::SENDING_FILE => 'Enviando arquivo',
+            self::PROVIDING_CATEGORY => 'Fornecendo categoria',
             self::WANTS_HUMAN => 'Quer atendente',
+            self::PROVIDING_MODEL_LINK => 'Enviou link de modelo',
+            self::PROVIDING_QUANTITY => 'Informou quantidade',
+            self::IS_PE => 'Fornecendo uma cidade do estado de PE (Pernambuco)',
+            self::IS_BR => 'Fornecendo uma cidade de outro estado do Brasil (fora de Pernambuco)',
             self::GOODBYE => 'Despedida',
             self::THANKING => 'Agradecimento',
             self::CONFIRMATION_YES => 'Confirmação positiva',

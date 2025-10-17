@@ -22,11 +22,12 @@ class IntentAnalyzer
         return $this->analyzeByAI($message, $conversation);
     }
 
+    // analisa a intenção da mensagem do cliente com regras simples
     private function analyzeByRules(string $message): CustomerIntent
     {
         $messageLower = mb_strtolower($message);
 
-        if (preg_match('/^(oi|olá|ola|bom dia|boa tarde|boa noite|e aí|eai)/i', $messageLower)) {
+        if (preg_match('/^(oi|olá|ola|bom dia|boa tarde|boa noite|e aí|eai|salve)/i', $messageLower)) {
             return CustomerIntent::GREETING;
         }
 
@@ -46,12 +47,24 @@ class IntentAnalyzer
             return CustomerIntent::ASKING_PRICE;
         }
 
-        if (preg_match('/\b(criar|criação|criacao|fazer|design|arte|logo)\b/i', $messageLower)) {
-            return CustomerIntent::WANTS_DESIGN_CREATION;
+        if (preg_match('/\b(vaquejada|comitiva|esportivo|futebol|ciclismo|corporativo|escolar|promocional|academia|uv\s*50|dry\s*fit)\b/i', $messageLower)) {
+            return CustomerIntent::PROVIDING_CATEGORY;
         }
 
-        if (preg_match('/\b(atendente|humano|pessoa|falar com alguém|falar com alguem)\b/i', $messageLower)) {
-            return CustomerIntent::WANTS_HUMAN;
+        if( preg_match('/\b(pernambuco|pe)\b/i', $messageLower)) {
+            return CustomerIntent::IS_PE;
+        }
+
+        if( preg_match('/\b(acre|ac|alagoas|al|amapa|ap|amazonas|am|bahia|ba|ceara|ce|distrito federal|df|espirito santo|es|goias|go|maranhao|ma|mato grosso|mt|mato grosso do sul|ms|minas gerais|mg|para|pa|paraiba|pb|parana|pr|piaui|pi|rio de janeiro|rj|rio grande do norte|rn|rio grande do sul|rs|rondonia|ro|roraima|rr|santa catarina|sc|sao paulo|sp|sergipe|se|tocantins|to)\b/i', $messageLower)) {
+            return CustomerIntent::IS_BR;
+        }
+
+        if (preg_match('#https?://\S+#i', $messageLower)) {
+            return CustomerIntent::PROVIDING_MODEL_LINK;
+        }
+
+        if (preg_match('/\b(\d{1,4})\b\s*(unid(?:ades)?|pcs?|peças|camisas|shirts|uniformes|conjuntos|camisa com short|camisas e shorts)?/iu', $messageLower)) {
+            return CustomerIntent::PROVIDING_QUANTITY;
         }
 
         if (preg_match('/\b(obrigad|valeu|agradeço|agradeco|thanks)\b/i', $messageLower)) {
@@ -83,29 +96,32 @@ class IntentAnalyzer
         }
 
         $systemPrompt = <<<PROMPT
-Você é um analisador de intenções para um chatbot de loja de uniformes.
+            Você é um analisador de intenções para um chatbot de loja de uniformes.
 
-Analise a mensagem do cliente e retorne APENAS uma das seguintes intenções (sem explicação):
+            Analise a mensagem do cliente e retorne APENAS uma das seguintes intenções (sem explicação):
 
-- greeting: Saudação ou início de conversa
-- has_design_yes: Cliente confirma que TEM design/arte
-- has_design_no: Cliente confirma que NÃO tem design/arte
-- wants_design_creation: Cliente quer criar/fazer um design
-- will_provide_design: Cliente vai providenciar o design depois
-- asking_delivery_time: Perguntando sobre prazo de entrega
-- asking_price: Perguntando sobre preços/valores
-- asking_products: Perguntando sobre produtos/tipos de uniforme
-- providing_details: Fornecendo detalhes do pedido (quantidade, tamanhos, etc)
-- wants_human: Quer falar com atendente humano
-- goodbye: Despedida
-- thanking: Agradecimento
-- confirmation_yes: Confirmação positiva (sim, ok, correto)
-- confirmation_no: Negação (não, negativo)
-- unclear: Intenção não está clara
-{$contextInfo}
+            - greeting: Saudação ou início de conversa
+            - has_design_yes: Cliente confirma que TEM design/arte
+            - has_design_no: Cliente confirma que NÃO tem design/arte
+            - wants_design_creation: Cliente quer criar/fazer um design
+            - will_provide_design: Cliente vai providenciar o design depois
+            - asking_delivery_time: Perguntando sobre prazo de entrega
+            - asking_price: Perguntando sobre preços/valores
+            - is_pe: Cliente é de uma cidade de do estado de Pernambuco (PE)
+            - is_br: Cliente é de uma cidade de outro estado do Brasil (fora de PE)
+            - providing_category: Fornecendo categoria/tipo de uniforme (vaquejada, futebol, corrida ou empresarial)
+            - asking_products: Perguntando sobre produtos/tipos de uniforme
+            - providing_details: Fornecendo detalhes do pedido (quantidade, tamanhos, etc)
+            - wants_human: Quer falar com atendente humano
+            - goodbye: Despedida
+            - thanking: Agradecimento
+            - confirmation_yes: Confirmação positiva (sim, ok, correto)
+            - confirmation_no: Negação (não, negativo)
+            - unclear: Intenção não está clara
+            {$contextInfo}
 
-IMPORTANTE: Responda APENAS com uma das palavras acima, sem pontuação ou explicação.
-PROMPT;
+            IMPORTANTE: Responda APENAS com uma das palavras acima, sem pontuação ou explicação.
+            PROMPT;
 
         try {
             $response = Prism::text()

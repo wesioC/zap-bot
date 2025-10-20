@@ -135,7 +135,7 @@ class ChatbotController extends Controller
                     'state' => $currentState->value,
                     'state_description' => $currentState->description(),
                     'status' => $conversation->status,
-                    'requires_attention' => $currentState->requiresHumanAttention(),
+                    'requires_attention' => null,
                     'message_count' => $conversation->messages->count(),
                     'last_message_at' => $conversation->last_message_at,
                     'created_at' => $conversation->created_at,

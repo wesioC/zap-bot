@@ -10,23 +10,13 @@ enum CustomerIntent: string
 
     case HAS_DESIGN_NO = 'has_design_no';
 
-    case WANTS_DESIGN_CREATION = 'wants_design_creation';
-
-    case WILL_PROVIDE_DESIGN = 'will_provide_design';
-
     case ASKING_DELIVERY_TIME = 'asking_delivery_time';
 
     case ASKING_PRICE = 'asking_price';
 
     case ASKING_PRODUCTS = 'asking_products';
 
-    case PROVIDING_DETAILS = 'providing_details';
-
     case PROVIDING_CATEGORY = 'providing_category';
-
-    case SENDING_FILE = 'sending_file';
-
-    case WANTS_HUMAN = 'wants_human';
 
     case GOODBYE = 'goodbye';
 
@@ -53,15 +43,10 @@ enum CustomerIntent: string
             self::GREETING => 'Saudação',
             self::HAS_DESIGN_YES => 'Tem design',
             self::HAS_DESIGN_NO => 'Não tem design',
-            self::WANTS_DESIGN_CREATION => 'Quer criar design',
-            self::WILL_PROVIDE_DESIGN => 'Vai providenciar design',
             self::ASKING_DELIVERY_TIME => 'Perguntando prazo',
             self::ASKING_PRICE => 'Perguntando preço',
             self::ASKING_PRODUCTS => 'Perguntando produtos',
-            self::PROVIDING_DETAILS => 'Fornecendo detalhes',
-            self::SENDING_FILE => 'Enviando arquivo',
             self::PROVIDING_CATEGORY => 'Fornecendo categoria',
-            self::WANTS_HUMAN => 'Quer atendente',
             self::PROVIDING_MODEL_LINK => 'Enviou link de modelo',
             self::PROVIDING_QUANTITY => 'Informou quantidade',
             self::IS_PE => 'Fornecendo uma cidade do estado de PE (Pernambuco)',

@@ -30,22 +30,22 @@ class ChatbotService
         );
 
         $conversation = $customer->getOrCreateActiveConversation();
+        if ($conversation->status === 'completed') {
+            return [
+                'customer_id' => $customer->id,
+                'conversation_id' => $conversation->id,
+                'response' => null,
+                'status' => $conversation->status,
+                'state' => null,
+                'intent' => null,
+            ];
+        }
         $conversation->addMessage('user', $message);
 
         $intent = $this->intentAnalyzer->analyze($message, $conversation);//intenção da mensagem
         $currentState = $this->stateManager->getCurrentState($conversation);
         $nextState = $this->stateManager->getNextState($currentState, $intent, $conversation);
         //se o último stado foi completo e tem menos uma semana, para de responder
-        if ($currentState === ConversationState::COMPLETED && $conversation->updated_at->gt(Carbon::now()->subWeek())) {
-            return [
-                'customer_id' => $customer->id,
-                'conversation_id' => $conversation->id,
-                'response' => null,
-                'status' => $conversation->status,
-                'state' => $currentState->value,
-                'intent' => $intent->value,
-            ];
-        }
 
         if ($nextState === ConversationState::SENDING_TO_FINANCIAL_PE || $nextState === ConversationState::SENDING_TO_FINANCIAL_BR) {
             //enviar lead para financeiro
@@ -161,77 +161,66 @@ class ChatbotService
             ",
 
             ConversationState::SENDING_TO_FINANCIAL_BR => "
-                O cliente forneceu as informações necessárias.
-                Agora o atendimento será continuado pelo setor financeiro.
+                O cliente é de outro estado do Brasil (fora de PE).
+                - Não faça mais perguntas só informe.
                 Informe que um especialista em breve irá responder aqui mesmo para fechar a arte e orçamento.
-
             ",
 
             ConversationState::SENDING_TO_FINANCIAL_PE => "
                 O cliente é de Pernambuco (PE).
-                Agora o atendimento será continuado pelo setor financeiro de Pernambuco.
+                -Não faça mais perguntas só informe.
                 Informe que um especialista em breve irá entrar em contato pelo whatsApp de PE para fechar a arte e orçamento.
             ",
 
             ConversationState::HAS_DESIGN => "
-                Ótimo! O cliente tem design.
-                Diga que é excelente e que você vai encaminhar para o setor financeiro preparar um orçamento personalizado.
-                Pergunte se o cliente gostaria de informar mais detalhes (quantidade, tipo de uniforme, prazo desejado).
+                Você ACABOU de receber o link do modelo (ou a confirmação de que já tem modelo).
+                Regras:
+                - Não fale de tamanhos, cores, prazos, etc.
+                - Pergunte DIRETO a quantidade.
+                - Em seguida, lembre do pedido mínimo.
+                - Estrutura EXATA em 1–2 frases:
+                1) 'Que legal, esse modelo é uma ótima escolha! Quantas unidades você gostaria de pedir?'
+                2) 'O pedido mínimo é de {$qtdMin} unidades.'
             ",
 
             ConversationState::NO_DESIGN => "
                 O cliente não tem design ainda.
-                Tranquilize o cliente dizendo que isso não é problema veja nosso catálogo de serviços de design.
                 envie o link da categoria que ele citou {$categoriesUrl} ou o link geral {$loja_url} se não citou nenhuma categoria
+                - Peça para escolher um modelo e enviar o link.
+                - Não invente ou modifique URLs.
             ",
 
-            //se citou categoria enviar link da categoria, senão perguntar a categoria
-            ConversationState::OFFERING_DESIGN_SERVICE => "
-                Explique as categorias de design disponíveis no site:
-                se citou alguma categoria da lista {$categories} envie o link direto da categoria que está disponível em {$categoriesUrl}.
-                Pergunte se o cliente tem interesse em contratar o serviço.
-            ",
 
             ConversationState::SHOWING_CATEGORY_CATALOG => "
-                Envie de forma amigavel o LINK do catálogo de categorias
-                Essas são as categorias disponíveis: {$categories}
-                Esses são os links das categorias: {$categoriesUrl}.
-                Peça para escolher um modelo e enviar o link.
+                Você JÁ sabe a categoria escolhida pelo cliente.
+                - Busque o link da categoria que o cliente mencionou em {$categoriesUrl}.
+                - Envie o link para o cliente.
+                - Peça para escolher um modelo e enviar o link, caso ainda não tenha um modelo em mente.
+                - NÃO fale de tamanhos, cores ou especificações agora.
+                - Texto objetivo (2–4 frases).
+
             ",
 
             ConversationState::ASKING_CATEGORY => "
                 O cliente ainda não informou a categoria desejada.
+                Ou o cliente não citou nenhuma categoria da lista {$categories} ou a intenção dele não foi clara.
                 Pergunte de forma amigável: 'Qual tipo de uniforme você está procurando? Temos várias categorias como: {$categories}'.
             ",
 
             ConversationState::ASKING_STATE => "
                 O cliente ainda não informou o estado.
                 Pergunte de forma amigável: 'De qual estado você está falando?'.
+                - não faça mais perguntas além dessa.
             ",
 
             ConversationState::ASKING_QUANTITY => "
                 O cliente ainda não informou a quantidade desejada.
-                se citou camisas pergunte de forma amigável: 'Quantas camisas você gostaria de pedir?'
-                se citou uniformes pergunte de forma amigável: 'Quantos uniformes você gostaria de pedir?'
-                se não citou nenhum dos dois pergunte de forma amigável: 'Qual a quantidade aproximada que você gostaria de pedir?'
-                O pedido mínimo é de {$qtdMin} unidades.
-                IMPORTANTE: Use EXATAMENTE essa estrutura: Pergunta + Lembrete do mínimo
+                Faça APENAS a pergunta de quantidade e, em seguida, o lembrete do pedido mínimo.
+                Estrutura EXATA em 1–2 frases:
+                1) 'Quantas unidades você gostaria de pedir?'
+                2) 'O pedido mínimo é de {$qtdMin} unidades.'
             ",
 
-            ConversationState::COLLECTING_DETAILS => "
-                Colete informações importantes:
-                - Tipo de uniforme (camiseta, calça, jaleco, etc)
-                - Quantidade aproximada
-                - Cores desejadas
-                - Tamanhos necessários
-                - Prazo desejado
-                Faça perguntas uma de cada vez para não sobrecarregar.
-            ",
-
-            ConversationState::WAITING_BUDGET => "
-                Informe que a solicitação foi encaminhada e que em breve a equipe entrará em contato com o orçamento.
-                Pergunte se há mais alguma dúvida.
-            ",
 
             ConversationState::ANSWERING_QUESTIONS => match($intent) {
                 CustomerIntent::ASKING_DELIVERY_TIME => "
@@ -240,7 +229,7 @@ class ChatbotService
                 ",
                 CustomerIntent::ASKING_PRICE => "
                     Explique que os valores dependem de: quantidade, tipo de uniforme, complexidade do design.
-                    Sugira fazer um orçamento personalizado sem compromisso.
+                    e pergunte o estado de onde o cliente é.
                 ",
                 CustomerIntent::ASKING_PRODUCTS => "
                     Informe que trabalham com diversos tipos: camisetas, polos, jalecos, calças, aventais, bonés, etc.
@@ -278,8 +267,7 @@ class ChatbotService
     private function getFallbackResponse(ConversationState $state): string
     {
         return match($state) {
-            ConversationState::GREETING => "Olá! Bem-vindo à nossa loja de uniformes. Como posso ajudá-lo hoje?",
-            ConversationState::ASKING_DESIGN => "Você já possui uma arte ou modelo para o uniforme ou camisa?",
+            ConversationState::GREETING => "Olá! me chamoso Guilherme Feitosa da gráfica de fardamentos personalizados. Como posso ajudá-lo hoje?",
             ConversationState::HAS_DESIGN => "Perfeito! Vou encaminhar para nossa equipe preparar um orçamento.",
             ConversationState::NO_DESIGN => "Sem problemas! temos muitos modelos e serviços de design. Dê uma olhada em nosso catálogo online. Você pode acessá-lo aqui: {$loja_url}",
             default => config('chatbot.messages.error', 'Desculpe, estou com dificuldades técnicas. Por favor, aguarde um momento.'),

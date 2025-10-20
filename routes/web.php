@@ -1,7 +1,11 @@
 <?php
 
+use App\Http\Controllers\ConversationsAdminController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [ConversationsAdminController::class, 'index'])
+    ->name('conversations.index'); // ✅ adiciona essa rota
+
+Route::post('/conversations/{conversation}/status', [ConversationsAdminController::class, 'updateStatus'])
+    ->name('conversations.updateStatus');
+

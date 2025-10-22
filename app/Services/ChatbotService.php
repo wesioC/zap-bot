@@ -215,9 +215,9 @@ class ChatbotService
 
             ConversationState::ASKING_QUANTITY => "
                 O cliente ainda não informou a quantidade desejada.
-                Faça APENAS a pergunta de quantidade e, em seguida, o lembrete do pedido mínimo.
+                Faça APENAS a pergunta de quantidade de uniformes ou camisas e, em seguida, o lembrete do pedido mínimo.
                 Estrutura EXATA em 1–2 frases:
-                1) 'Quantas unidades você gostaria de pedir?'
+                1) 'Quantas unidades de uniformes ou camisas você gostaria de pedir?'
                 2) 'O pedido mínimo é de {$qtdMin} unidades.'
             ",
 

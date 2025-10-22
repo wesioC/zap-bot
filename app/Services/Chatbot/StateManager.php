@@ -152,22 +152,24 @@ class StateManager
     private function fromGreeting(CustomerIntent $intent): ConversationState
     {
         return match($intent) {
-            CustomerIntent::GREETING            => ConversationState::ASKING_CATEGORY,
-            CustomerIntent::PROVIDING_CATEGORY  => ConversationState::SHOWING_CATEGORY_CATALOG,
+            CustomerIntent::HAS_DESIGN_YES       => ConversationState::ASKING_QUANTITY,
+            CustomerIntent::PROVIDING_CATEGORY   => ConversationState::SHOWING_CATEGORY_CATALOG,
+            CustomerIntent::GREETING             => ConversationState::ASKING_CATEGORY,
             CustomerIntent::ASKING_DELIVERY_TIME,
             CustomerIntent::ASKING_PRICE,
-            CustomerIntent::ASKING_PRODUCTS     => ConversationState::ANSWERING_QUESTIONS,
-            default                             => ConversationState::ASKING_CATEGORY,
+            CustomerIntent::ASKING_PRODUCTS      => ConversationState::ANSWERING_QUESTIONS,
+            default                              => ConversationState::ASKING_CATEGORY,
         };
     }
 
     private function fromAskingCategory(CustomerIntent $intent): ConversationState
     {
         return match ($intent) {
-            CustomerIntent::PROVIDING_CATEGORY  => ConversationState::SHOWING_CATEGORY_CATALOG,
+            CustomerIntent::HAS_DESIGN_YES       => ConversationState::ASKING_QUANTITY,
+            CustomerIntent::PROVIDING_CATEGORY   => ConversationState::SHOWING_CATEGORY_CATALOG,
             CustomerIntent::ASKING_DELIVERY_TIME,
-            CustomerIntent::ASKING_PRICE        => ConversationState::ANSWERING_QUESTIONS,
-            default                             => ConversationState::ASKING_CATEGORY,
+            CustomerIntent::ASKING_PRICE         => ConversationState::ANSWERING_QUESTIONS,
+            default                              => ConversationState::ASKING_CATEGORY,
         };
     }
 

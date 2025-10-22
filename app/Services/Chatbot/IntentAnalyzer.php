@@ -54,6 +54,18 @@ class IntentAnalyzer
             return CustomerIntent::PROVIDING_MODEL_LINK;
         }
 
+        if (preg_match('/\b(j[áa]\s*tenho\s*(a\s*)?(arte|modelo|mockup|arquivo)|tenho\s*(a\s*)?(arte|modelo|mockup|arquivo)|arte\s*pronta|modelo\s*pronto|temos\s*arte)\b/iu', $messageLower)) {
+            if (in_array($state, [
+                ConversationState::ASKING_DESIGN,
+                ConversationState::SHOWING_CATEGORY_CATALOG,
+                ConversationState::ASKING_CATEGORY,
+                ConversationState::GREETING, 
+            ], true)) {
+                return CustomerIntent::HAS_DESIGN_YES;
+            }
+            return CustomerIntent::CONFIRMATION_YES;
+        }
+
         // Categoria (bem abrangente)
         if (preg_match('/\b(vaque(i)?jada|comitiva|esportivo|futebol|corrida|corporativo|empresarial|jaleco|avent(al|ais)|bon(é|e)s?|uv\s*50|dry\s*fit|polo|camis(et|a))\b/iu', $messageLower)) {
             return CustomerIntent::PROVIDING_CATEGORY;

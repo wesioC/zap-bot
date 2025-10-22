@@ -54,13 +54,6 @@ class ChatbotController extends Controller
 
     public function whatsappWebhook(Request $request): JsonResponse
     {
-        if ($request->input('hub_mode') === 'subscribe' &&
-            $request->input('hub_verify_token') === config('services.whatsapp.verify_token')) {
-            return response()->json([
-                'hub_challenge' => $request->input('hub_challenge')
-            ]);
-        }
-
         try {
             $entries = $request->input('entry', []);
 
@@ -68,34 +61,60 @@ class ChatbotController extends Controller
                 $changes = $entry['changes'] ?? [];
 
                 foreach ($changes as $change) {
-                    if ($change['field'] === 'messages') {
-                        $messages = $change['value']['messages'] ?? [];
+                    if (($change['field'] ?? null) !== 'messages') {
+                        continue;
+                    }
 
-                        foreach ($messages as $message) {
-                            if ($message['type'] === 'text') {
-                                $phone = $message['from'];
-                                $text = $message['text']['body'];
+                    $value = $change['value'] ?? [];
 
-                                $result = $this->chatbotService->processMessage($phone, $text);
+                    if (($value['messaging_product'] ?? null) !== 'whatsapp') {
+                        continue;
+                    }
 
-                                $this->sendWhatsAppMessage($phone, $result['response']);
+                    $messages = $value['messages'] ?? [];
+
+                    foreach ($messages as $message) {
+                        if (($message['type'] ?? null) !== 'text') {
+                            continue;
+                        }
+
+                        $phone = $message['from'] ?? null;
+                        $text  = data_get($message, 'text.body');
+
+                        if ($phone && filled($text)) {
+                            try {
+                                Http::timeout(8)
+                                    ->acceptJson()
+                                    ->asJson()
+                                    ->post(
+                                        config('services.whatsapp.forward_url', 'http://127.0.0.1:8000/api/chat'),
+                                        [
+                                            'phone' => $phone,
+                                            'text'  => $text,
+                                        ]
+                                    );
+                            } catch (\Throwable $e) {
+                                Log::warning('Falha ao encaminhar para /api/chat', [
+                                    'error' => $e->getMessage(),
+                                    'phone' => $phone,
+                                ]);
                             }
                         }
                     }
                 }
             }
 
-            return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            \Log::error('Erro ao processar webhook do WhatsApp', [
+            // Sempre 200 para o Meta não ficar reenviando sem necessidade
+            return response()->json(['success' => true], 200);
+
+        } catch (\Throwable $e) {
+            Log::error('Erro ao processar webhook do WhatsApp', [
                 'error' => $e->getMessage(),
                 'payload' => $request->all(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao processar webhook',
-            ], 500);
+            // Ainda assim, responder 200 evita tempestade de retries.
+            return response()->json(['success' => false], 200);
         }
     }
 
@@ -106,8 +125,7 @@ class ChatbotController extends Controller
         $challenge = $request->input('hub.challenge');
 
         if ($mode === 'subscribe' && $token === config('services.whatsapp.verify_token')) {
-            return response($challenge, 200)
-                ->header('Content-Type', 'text/plain');
+            return response($challenge, 200)->header('Content-Type', 'text/plain');
         }
 
         return response()->json(['error' => 'Invalid verification token'], 403);
@@ -178,9 +196,51 @@ class ChatbotController extends Controller
 
     private function sendWhatsAppMessage(string $phone, string $message): void
     {
-        \Log::info('Enviando mensagem WhatsApp', [
-            'phone' => $phone,
-            'message' => $message,
-        ]);
+        $graphVersion      = config('services.whatsapp.graph_version', 'v22.0');
+        $phoneNumberId     = config('services.whatsapp.phone_number_id');
+        $accessToken       = config('services.whatsapp.access_token', config('services.whatsapp.api_token'));
+
+        if (!$phoneNumberId || !$accessToken) {
+            Log::error('WhatsApp config ausente: phone_number_id ou access_token/api_token não configurados.');
+            return;
+        }
+
+        $endpoint = "https://graph.facebook.com/{$graphVersion}/{$phoneNumberId}/messages";
+
+        $payload = [
+            'messaging_product' => 'whatsapp',
+            'recipient_type'    => 'individual',
+            'to'                => $phone,
+            'type'              => 'text',
+            'text'              => [
+                'preview_url' => false,
+                'body'        => $message,
+            ],
+        ];
+
+        try {
+            $res = Http::withToken($accessToken)
+                ->acceptJson()
+                ->asJson()
+                ->post($endpoint, $payload);
+
+            if (!$res->successful()) {
+                Log::error('Erro ao enviar mensagem WhatsApp', [
+                    'status' => $res->status(),
+                    'body'   => $res->body(),
+                    'to'     => $phone,
+                ]);
+            } else {
+                Log::info('Mensagem WhatsApp enviada com sucesso', [
+                    'to'     => $phone,
+                    'wa_msg' => $res->json(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('Exceção ao enviar mensagem WhatsApp', [
+                'error' => $e->getMessage(),
+                'to'    => $phone,
+            ]);
+        }
     }
 }

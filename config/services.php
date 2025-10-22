@@ -43,6 +43,10 @@ return [
     'whatsapp' => [
         'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
         'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'forward_url'  => env('WHATSAPP_FORWARD_URL', 'http://127.0.0.1:8000/api/chat'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'graph_version'   => env('WHATSAPP_GRAPH_VERSION', 'v22.0'),
+        'api_token'    => env('WHATSAPP_API_TOKEN'),
     ],
 
 ];

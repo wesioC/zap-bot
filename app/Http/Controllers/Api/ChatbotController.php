@@ -83,16 +83,20 @@ class ChatbotController extends Controller
 
                         if ($phone && filled($text)) {
                             try {
-                                Http::timeout(8)
+                               $response = Http::timeout(8)
                                     ->acceptJson()
-                                    ->asJson()
                                     ->post(
                                         config('services.whatsapp.forward_url', 'http://127.0.0.1:8000/api/chat'),
                                         [
                                             'phone' => $phone,
-                                            'text'  => $text,
+                                            'message'  => $text,
                                         ]
                                     );
+
+                                $replyText = data_get($response->json(), 'data.response') ?? data_get($response->json(), 'data');
+
+                                $this->sendWhatsAppMessage($phone, $replyText ?? 'Obrigado por sua mensagem! Em breve retornaremos.');
+                                
                             } catch (\Throwable $e) {
                                 Log::warning('Falha ao encaminhar para /api/chat', [
                                     'error' => $e->getMessage(),

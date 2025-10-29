@@ -124,16 +124,18 @@ class ChatbotController extends Controller
 
     public function verifyWebhook(Request $request): mixed
     {
-        $mode = $request->input('hub.mode');
-        $token = $request->input('hub.verify_token');
-        $challenge = $request->input('hub.challenge');
+        $mode      = $request->query('hub_mode', $request->input('hub.mode'));
+        $token     = $request->query('hub_verify_token', $request->input('hub.verify_token'));
+        $challenge = $request->query('hub_challenge', $request->input('hub.challenge'));
 
-        if ($mode === 'subscribe' && $token === config('services.whatsapp.verify_token')) {
-            return response($challenge, 200)->header('Content-Type', 'text/plain');
+        if (strtolower((string)$mode) === 'subscribe'
+            && (string)$token === (string) config('services.whatsapp.verify_token')) {
+            return response((string)$challenge, 200)->header('Content-Type', 'text/plain');
         }
-
+        \Log::info('WEBHOOK VERIFY', compact('mode','token','challenge'));
         return response()->json(['error' => 'Invalid verification token'], 403);
     }
+
 
     public function getConversationStatus($id): JsonResponse
     {
